@@ -1,1 +1,9 @@
 {"level":"info","message":"Server running on port 8080"}
+{"YOUTUBE_API_KEY":"Not Set","level":"info","message":"Environment Variables:"}
+{"level":"info","message":"Attempting to connect to the PostgreSQL database..."}
+{"level":"info","message":"Server running on port 8080"}
+{"code":"ECONNREFUSED","level":"error","message":"Database connection error:","stack":"AggregateError [ECONNREFUSED]: \n    at D:\\Projects\\fk-add-button-extension\\BACKEND\\node_modules\\pg-pool\\index.js:45:11\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async D:\\Projects\\fk-add-button-extension\\BACKEND\\server.js:56:20"}
+{"YOUTUBE_API_KEY":"Not Set","level":"info","message":"Environment Variables:"}
+{"level":"info","message":"Attempting to connect to the PostgreSQL database..."}
+{"level":"info","message":"Server running on port 8080"}
+{"code":"ECONNREFUSED","level":"error","message":"Database connection error:","stack":"AggregateError [ECONNREFUSED]: \n    at D:\\Projects\\fk-add-button-extension\\BACKEND\\node_modules\\pg-pool\\index.js:45:11\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at async D:\\Projects\\fk-add-button-extension\\BACKEND\\server.js:56:20"}
