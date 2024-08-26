@@ -17,8 +17,6 @@ services:
       - "8080:8080"
     networks:
       - backend-network
-    env_file:
-      - ./backend/.env  # Explicitly reference the .env file inside the backend folder
 
 networks:
   backend-network:
