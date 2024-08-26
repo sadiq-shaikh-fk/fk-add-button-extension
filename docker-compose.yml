@@ -13,8 +13,4 @@ services:
       - DB_NAME=youtube
       - DB_PORT=5432
     networks:
-      - external_network
-
-networks:
-  external_network:
-    external: true  # This uses Docker's external network or bridge mode
+      - default
