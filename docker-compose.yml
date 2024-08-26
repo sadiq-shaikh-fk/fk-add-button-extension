@@ -1,22 +1,24 @@
+version: '3.8'
+
 services:
   backend:
     build: ./backend
     container_name: youtube-backend
     environment:
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_HOST: ${DB_HOST}   # Use the existing database's hostname or IP
-      DB_NAME: ${DB_NAME}
-      DB_PORT: ${DB_PORT}   # Ensure this matches the port your existing PostgreSQL is running on
-      PORT: 8080
-      CLIENT_ID: ${CLIENT_ID}
-      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=${DB_NAME}
+      - DB_PORT=${DB_PORT}
+      - PORT=8080
+      - CLIENT_ID=${CLIENT_ID}
+      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
     ports:
       - "8080:8080"
     networks:
       - backend-network
     env_file:
-      - .env
+      - ./backend/.env  # Explicitly reference the .env file inside the backend folder
 
 networks:
   backend-network:
