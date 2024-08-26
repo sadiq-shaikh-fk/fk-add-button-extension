@@ -5,27 +5,22 @@ This Chrome extension allows users to check YouTube channels and videos for dupl
 
 ## Getting Started
 
-### Backend
+### Backend Setup
 
-1. Navigate to the `backend/` directory.
-2. Run `npm install` to install dependencies.
-3. Create a `.env` file with your database and Google OAuth credentials.
-4. Run the server using `npm start`.
+#### 1. Prerequisites
 
-### Chrome Extension
+- **Docker:** Ensure that Docker is installed on your local machine for building and testing the backend. [Install Docker](https://docs.docker.com/get-docker/)
+- **Google Cloud SDK:** Install the Google Cloud SDK to manage your VM and deploy the backend. [Install Google Cloud SDK](https://cloud.google.com/sdk/docs/install)
+- **PostgreSQL Database:** Make sure your PostgreSQL database is up and running with the correct schema.
 
-1. Navigate to the `chrome://extensions/` page in Chrome.
-2. Enable **Developer Mode**.
-3. Load the unpacked extension from the `extension/` directory.
+#### 2. Create `.env` File
 
-## Environment Variables
-
-Create a `.env` file in the `backend/` directory with the following keys:
+Create a `.env` file in the `backend/` directory with the following environment variables:
 
 ```bash
 DB_USER=your_postgres_user
 DB_PASSWORD=your_postgres_password
-DB_HOST=your_db_host
+DB_HOST=your_db_host_or_ip
 DB_NAME=your_db_name
 DB_PORT=5432
 PORT=8080
