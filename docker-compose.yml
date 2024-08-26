@@ -1,21 +1,20 @@
+version: '3.8'
+
 services:
   backend:
     build: ./backend
     container_name: youtube-backend
-    environment:
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_HOST=${DB_HOST}
-      - DB_NAME=${DB_NAME}
-      - DB_PORT=${DB_PORT}
-      - PORT=8080
-      - CLIENT_ID=${CLIENT_ID}
-      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
     ports:
-      - "8080:3000"
+      - "8080:8080"
+    environment:
+      - DB_HOST=35.200.244.95  # External IP of the VM running PostgreSQL
+      - DB_USER=sadiq_shaikh
+      - DB_PASSWORD=sadiq@123
+      - DB_NAME=youtube
+      - DB_PORT=5432
     networks:
-      - backend-network
+      - external_network
 
 networks:
-  backend-network:
-    driver: bridge
+  external_network:
+    external: true  # This uses Docker's external network or bridge mode

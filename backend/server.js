@@ -24,19 +24,19 @@ const logger = winston.createLogger({
   level: 'info',
   format: winston.format.json(),
   transports: [
-    new winston.transports.File({ filename: 'error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'combined.log' }),
-    new winston.transports.Console({ format: winston.format.simple() }) // Console logging for development
+    new winston.transports.Console({ format: winston.format.simple() }), // Console logging for development
+    new winston.transports.File({ filename: 'logs/combined.log' }), // Combined log file
+    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }) // Error log file
   ],
 });
 
-// Log environment variables for debugging (optional: remove or mask sensitive data in production)
+// Log environment variables for debugging (optional: mask sensitive data in production)
 logger.info('Environment Variables:', {
   DB_HOST: process.env.DB_HOST,
   DB_USER: process.env.DB_USER,
   DB_NAME: process.env.DB_NAME,
-  PORT: process.env.PORT,
-  CLIENT_ID: process.env.CLIENT_ID,
+  PORT: process.env.PORT || 8080,
+  CLIENT_ID: process.env.CLIENT_ID ? 'Set' : 'Not Set',
   YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY ? 'Set' : 'Not Set'
 });
 
@@ -49,7 +49,7 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
-// Attempt to connect to the PostgreSQL database
+// Attempt to connect to PostgreSQL
 (async () => {
   try {
     logger.info('Attempting to connect to the PostgreSQL database...');
@@ -72,12 +72,11 @@ async function verifyToken(req, res, next) {
   }
 
   try {
-    const ticket = await client.verifyIdToken({
+    const ticket = await new OAuth2Client(process.env.CLIENT_ID).verifyIdToken({
       idToken: token,
       audience: process.env.CLIENT_ID,
     });
-    const payload = ticket.getPayload();
-    req.user = payload;
+    req.user = ticket.getPayload();
     logger.info(`Google OAuth token verified for user: ${req.user.name}`);
     next();
   } catch (error) {
@@ -86,10 +85,9 @@ async function verifyToken(req, res, next) {
   }
 }
 
-// Function to fetch Channel Details from YouTube API (if necessary)
+// Function to fetch channel ID from YouTube API
 async function getChannelIdFromAPI(url, token) {
-  logger.info(`Fetching channel ID from YouTube API for URL: ${url}`);
-
+  logger.info(`Fetching channel ID for URL: ${url}`);
   const channelMatch = url.match(/youtube\.com\/channel\/([a-zA-Z0-9_-]+)/);
   const usernameMatch = url.match(/youtube\.com\/(user|c)\/([a-zA-Z0-9_-]+)/);
   const videoMatch = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
@@ -98,30 +96,21 @@ async function getChannelIdFromAPI(url, token) {
 
   try {
     if (channelMatch) {
-      channelId = channelMatch[1]; // Extract the channel ID directly from the URL
-      logger.info(`Extracted channel ID from URL: ${channelId}`);
+      channelId = channelMatch[1];
+      logger.info(`Channel ID extracted directly from URL: ${channelId}`);
     } else if (usernameMatch) {
       const username = usernameMatch[2];
       const apiURL = `https://www.googleapis.com/youtube/v3/channels?forUsername=${username}&part=id&key=${process.env.YOUTUBE_API_KEY}`;
-      logger.info(`Fetching channel ID for username: ${username}`);
-      const response = await fetch(apiURL, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await fetch(apiURL);
       const data = await response.json();
-      if (data.items.length > 0) {
-        channelId = data.items[0].id;
-        logger.info(`Fetched channel ID from YouTube API: ${channelId}`);
-      }
+      if (data.items.length > 0) channelId = data.items[0].id;
     } else if (videoMatch) {
       const videoId = videoMatch[1];
       const apiURL = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet&key=${process.env.YOUTUBE_API_KEY}`;
-      logger.info(`Fetching channel ID for video ID: ${videoId}`);
-      const response = await fetch(apiURL, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await fetch(apiURL);
       const data = await response.json();
-      if (data.items.length > 0) {
-        channelId = data.items[0].snippet.channelId;
-        logger.info(`Fetched channel ID from YouTube API via video ID: ${channelId}`);
-      }
+      if (data.items.length > 0) channelId = data.items[0].snippet.channelId;
     }
-
     return channelId;
   } catch (error) {
     logger.error('Error fetching channel ID from YouTube API:', error);
@@ -129,30 +118,19 @@ async function getChannelIdFromAPI(url, token) {
   }
 }
 
-// Route to check and insert YouTube channel ID
+// Route for channel insertion
 app.post('/checkChannel', verifyToken, async (req, res) => {
   const { url } = req.body;
   const userFullName = req.user.name;
-  logger.info(`Request to check and insert channel from user: ${userFullName}, URL: ${url}`);
 
   try {
     const channelId = await getChannelIdFromAPI(url, req.headers.authorization.split(' ')[1]);
-
-    if (!channelId) {
-      logger.warn('Invalid YouTube URL or Channel ID could not be retrieved');
-      return res.status(400).json({ message: 'Invalid YouTube URL or Channel ID could not be retrieved.' });
-    }
+    if (!channelId) return res.status(400).json({ message: 'Invalid YouTube URL or Channel ID not found.' });
 
     const result = await pool.query('SELECT * FROM channel_details WHERE yt_channel_id = $1', [channelId]);
-
-    if (result.rows.length > 0) {
-      logger.info(`Duplicate channel ID found: ${channelId}`);
-      return res.status(200).json({ message: 'Duplicate channel ID found.' });
-    }
+    if (result.rows.length > 0) return res.status(200).json({ message: 'Duplicate channel ID found.' });
 
     await pool.query('INSERT INTO channel_details (yt_channel_id, createdBy) VALUES ($1, $2)', [channelId, userFullName]);
-    logger.info(`Channel ID ${channelId} inserted successfully by user: ${userFullName}`);
-
     return res.status(201).json({ message: 'Channel ID inserted successfully.' });
   } catch (err) {
     logger.error('Error inserting channel ID:', err);
@@ -160,14 +138,11 @@ app.post('/checkChannel', verifyToken, async (req, res) => {
   }
 });
 
-// Route to get influencer history
+// Route for getting influencer history
 app.get('/influencerHistory', verifyToken, async (req, res) => {
   const userFullName = req.user.name;
-  logger.info(`Request to get influencer history for user: ${userFullName}`);
-
   try {
     const result = await pool.query('SELECT * FROM channel_details WHERE createdBy = $1', [userFullName]);
-    logger.info(`Influencer history retrieved for user: ${userFullName}`);
     return res.status(200).json(result.rows);
   } catch (err) {
     logger.error('Error retrieving influencer history:', err);
@@ -181,7 +156,7 @@ app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
 });
 
-// Error handling for unhandled promise rejections and uncaught exceptions
+// Handle unhandled rejections and exceptions
 process.on('unhandledRejection', (err) => {
   logger.error('Unhandled rejection:', err);
 });
